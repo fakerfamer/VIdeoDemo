@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraDevice;
@@ -13,6 +14,7 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureRequest;
 import android.media.CamcorderProfile;
 import android.media.MediaRecorder;
+import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -25,6 +27,9 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+
+import com.coolweather.videodemo.filter.ColorFilter;
+import com.coolweather.videodemo.render.CameraPreviewRender;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +55,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private CameraCaptureSession mCameraCaptureSession;
     private MediaRecorder mMediaRecorder;
     private String mMediaPath;
+    GLSurfaceView glSurfaceView;
+    SurfaceTexture surfaceTexture;
     private boolean FLAG_isRecording = false;
+    private CameraPreviewRender cameraPreviewRender;
+    private Button btnColorFilter;
+    private Surface surface;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +72,56 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void initView() {
-        mSurfaceView = findViewById(R.id.preview_surface);
+        /*mSurfaceView = findViewById(R.id.preview_surface);
         btn = findViewById(R.id.button_start);
-        mSurfaceHolder = mSurfaceView.getHolder();
+        mSurfaceHolder = mSurfaceView.getHolder();*/
+
+        glSurfaceView = findViewById(R.id.preview_surface);
+        glSurfaceView.setEGLContextClientVersion(3);
+        cameraPreviewRender = new CameraPreviewRender();
+        glSurfaceView.setRenderer(cameraPreviewRender);
+        btnColorFilter = findViewById(R.id.button_fill);
+        btnColorFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ColorFilter.COLOR_FLAG < 7){
+                    ColorFilter.COLOR_FLAG++;
+                }else {
+                    ColorFilter.COLOR_FLAG = 0;
+                }
+            }
+        });
+        surfaceTexture = cameraPreviewRender.getSurfaceTexture();
+        Log.d("startTime", "" +System.currentTimeMillis());
+        Log.d("startTime2", "" +System.currentTimeMillis());
+      /* while(surfaceTexture == null){
+           Log.d("asdf", "asdf");
+       }*/
+        if(surfaceTexture == null){
+            return;
+        }
+        surfaceTexture.setDefaultBufferSize(1440, 1920);
+        surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+            @Override
+            public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+                glSurfaceView.requestRender();
+            }
+        });
+        surface = new Surface(surfaceTexture);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO}, 1);
+            } else {
+                initCamera();
+            }
+        } else {
+            initCamera();
+        }
+
+
+        
         mSurfaceHolder.setFixedSize(1440, 1920);
         mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -138,14 +195,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void takePreview() {
         try {
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mPreviewRequestBuilder.addTarget(mSurfaceHolder.getSurface());
+            mPreviewRequestBuilder.addTarget(surface);
             Log.d(TAG, "mSurfaceHolder.getSurface==null:" + (mSurfaceHolder.getSurface() == null));
-            if (mSurfaceHolder.getSurface() == null) {
+            if (surface == null) {
                 Toast.makeText(MainActivity.this, "surface==null", Toast.LENGTH_SHORT).show();
                 return;
             }
             mSurfaceList = new ArrayList<>();
-            mSurfaceList.add(mSurfaceHolder.getSurface());
+            mSurfaceList.add(surface);
             mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
 
                 @Override

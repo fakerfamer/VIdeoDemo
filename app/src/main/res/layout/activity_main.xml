@@ -4,17 +4,27 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-        <SurfaceView
+        <android.opengl.GLSurfaceView
             android:id="@+id/preview_surface"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_weight="1"/>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
         <Button
                 android:id="@+id/button_start"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
+                android:layout_marginLeft="20dp"
                 android:visibility="visible"
                 android:text="start" />
+        <Button
+                android:id="@+id/button_fill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="120dp"
+                android:text="切换滤镜"/>
+         </LinearLayout>
 
 </LinearLayout>
