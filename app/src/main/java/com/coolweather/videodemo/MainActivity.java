@@ -30,6 +30,7 @@ import android.widget.Toast;
 
 import com.coolweather.videodemo.filter.ColorFilter;
 import com.coolweather.videodemo.render.CameraPreviewRender;
+import com.coolweather.videodemo.utils.GLUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -71,47 +72,20 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn.setOnClickListener(this);
     }
 
-    private void initView() {
-        /*mSurfaceView = findViewById(R.id.preview_surface);
-        btn = findViewById(R.id.button_start);
-        mSurfaceHolder = mSurfaceView.getHolder();*/
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        glSurfaceView = findViewById(R.id.preview_surface);
-        glSurfaceView.setEGLContextClientVersion(3);
-        cameraPreviewRender = new CameraPreviewRender();
-        glSurfaceView.setRenderer(cameraPreviewRender);
-        btnColorFilter = findViewById(R.id.button_fill);
-        btnColorFilter.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (ColorFilter.COLOR_FLAG < 7){
-                    ColorFilter.COLOR_FLAG++;
-                }else {
-                    ColorFilter.COLOR_FLAG = 0;
-                }
-            }
-        });
-        surfaceTexture = cameraPreviewRender.getSurfaceTexture();
-        Log.d("startTime", "" +System.currentTimeMillis());
-        Log.d("startTime2", "" +System.currentTimeMillis());
-      /* while(surfaceTexture == null){
-           Log.d("asdf", "asdf");
-       }*/
-        if(surfaceTexture == null){
-            return;
+        GLUtil.init(this);
+
+        if(cameraPreviewRender.getSurfaceTexture() == null){
+            Log.d(TAG, "cameraPreviewRender.getSurfaceTexture() == null in onresume:" + (cameraPreviewRender.getSurfaceTexture() == null));
         }
-        surfaceTexture.setDefaultBufferSize(1440, 1920);
-        surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
-            @Override
-            public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-                glSurfaceView.requestRender();
-            }
-        });
-        surface = new Surface(surfaceTexture);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED ||
                     checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
                     checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "requestPermissions2");
                 requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO}, 1);
             } else {
                 initCamera();
@@ -120,9 +94,35 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             initCamera();
         }
 
+    }
+
+    private void initView() {
+        /*mSurfaceView = findViewById(R.id.preview_surface);
+        btn = findViewById(R.id.button_start);
+        mSurfaceHolder = mSurfaceView.getHolder();*/
+
+        glSurfaceView = findViewById(R.id.preview_surface);
+        glSurfaceView.setEGLContextClientVersion(3);
+        cameraPreviewRender = new CameraPreviewRender();
+        Log.d(TAG, "startTime:" + System.currentTimeMillis());
+        glSurfaceView.setRenderer(cameraPreviewRender);
+        if(cameraPreviewRender.getSurfaceTexture() == null){
+            Log.d(TAG, "cameraPreviewRender.getSurfaceTexture() == null in initview:" + (cameraPreviewRender.getSurfaceTexture() == null));
+        }
+        btnColorFilter = findViewById(R.id.button_fill);
+        btnColorFilter.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (ColorFilter.COLOR_FLAG < 7) {
+                    ColorFilter.COLOR_FLAG++;
+                } else {
+                    ColorFilter.COLOR_FLAG = 0;
+                }
+            }
+        });
 
         
-        mSurfaceHolder.setFixedSize(1440, 1920);
+       /* mSurfaceHolder.setFixedSize(1440, 1920);
         mSurfaceHolder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder surfaceHolder) {
@@ -149,16 +149,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
             }
         });
-        initCamera();
+        initCamera();*/
     }
 
     private void initCamera() {
+        Log.d(TAG, "initCamera");
         mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
         cameraId = BACK_CAM;
         mMainHandler = new Handler(getMainLooper());
         HandlerThread handlerThread = new HandlerThread("childThread");
         handlerThread.start();
         mChildHander = new Handler(handlerThread.getLooper());
+
+        if(cameraPreviewRender.getSurfaceTexture() == null){
+            Log.d(TAG, "cameraPreviewRender.getSurfaceTexture() == null in initview:" + (cameraPreviewRender.getSurfaceTexture() == null));
+        }
+
         try {
             if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
@@ -174,6 +180,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 @Override
                 public void onOpened(CameraDevice cameraDevice) {
                     mCameraDevice = cameraDevice;
+
+
+                    surfaceTexture = cameraPreviewRender.getSurfaceTexture();
+                    if (surfaceTexture == null) {
+                        Log.d(TAG, "surfaceTexture is null");
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        return;
+                    }
+                    Log.d(TAG, "cameraPreviewRender.getSurfaceTexture() == null in onopened:" + (cameraPreviewRender.getSurfaceTexture() == null));
+
+
+                    surfaceTexture.setDefaultBufferSize(1440, 1920);
+                    surfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
+                        @Override
+                        public void onFrameAvailable(SurfaceTexture surfaceTexture) {
+                            Log.d(TAG, "onFrameAvailable");
+                            glSurfaceView.requestRender();
+                        }
+                    });
+                    surface = new Surface(surfaceTexture);
+                    Log.d(TAG, "requestPermissions1");
+
                     takePreview();
                 }
 
@@ -196,7 +228,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mPreviewRequestBuilder.addTarget(surface);
-            Log.d(TAG, "mSurfaceHolder.getSurface==null:" + (mSurfaceHolder.getSurface() == null));
+            //Log.d(TAG, "mSurfaceHolder.getSurface==null:" + (mSurfaceHolder.getSurface() == null));
             if (surface == null) {
                 Toast.makeText(MainActivity.this, "surface==null", Toast.LENGTH_SHORT).show();
                 return;
@@ -207,11 +239,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
                 @Override
                 public void onConfigured(CameraCaptureSession cameraCaptureSession) {
-
+                    Log.d(TAG, "onConfigured");
                     if (mCameraDevice == null)
                         return;
-                        mCameraCaptureSession = cameraCaptureSession;
-                       updatePreviewSession();
+                    mCameraCaptureSession = cameraCaptureSession;
+                    updatePreviewSession();
                 }
 
                 @Override
@@ -224,9 +256,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private void updatePreviewSession(){
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
-        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+    private void updatePreviewSession() {
+       /* mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);*/
+        Log.d(TAG, "updatePreviewSession");
         CaptureRequest previewRequest = mPreviewRequestBuilder.build();
         try {
             mCameraCaptureSession.setRepeatingRequest(previewRequest, null, mMainHandler);
@@ -244,7 +277,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mMediaRecorder.setVideoEncodingBitRate(100000000);
         mMediaRecorder.setCaptureRate(60);
         mMediaRecorder.setVideoFrameRate(30);
-        mMediaRecorder.setVideoSize(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+//        mMediaRecorder.setVideoSize(mSurfaceView.getWidth(), mSurfaceView.getHeight());
+        mMediaRecorder.setVideoSize(1440, 1920);
         mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
         mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
         mMediaRecorder.setOrientationHint(90);
@@ -271,7 +305,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         boolean OutputExist = Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED);
         if (OutputExist) {
             mediaFile = Environment.getExternalStorageDirectory();
-            Log.d(TAG, "mediaFileToString" +mediaFile.toString());
+            Log.d(TAG, "mediaFileToString" + mediaFile.toString());
             return mediaFile.toString();
         }
         return null;
@@ -315,11 +349,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         try {
             mPreviewRequestBuilder = null;
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mSurfaceHolder.setFixedSize(1440, 1920);
-            final Surface recorderSurface = mMediaRecorder.getSurface();
+            //mSurfaceHolder.setFixedSize(1440, 1920);
+            //final Surface recorderSurface = mMediaRecorder.getSurface();
+
+            //mMediaRecorder.getSurface();
+
             mSurfaceList.clear();
-            mSurfaceList.add(mSurfaceHolder.getSurface());
-            mSurfaceList.add(recorderSurface);
+           /* SurfaceList.add(mSurfaceHolder.getSurface());
+            mSurfaceList.add(recorderSurface);*/
+           mSurfaceList.add(surface);
             mCameraDevice.createCaptureSession(mSurfaceList, new CameraCaptureSession.StateCallback() {
                 @Override
                 public void onConfigured(CameraCaptureSession cameraCaptureSession) {
@@ -328,8 +366,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     mMediaRecorder.start();
                     btn.setText("stop");
                     mCameraCaptureSession = cameraCaptureSession;
-                    mPreviewRequestBuilder.addTarget(recorderSurface);
-                    mPreviewRequestBuilder.addTarget(mSurfaceHolder.getSurface());
+//                    mPreviewRequestBuilder.addTarget(recorderSurface);
+                    mPreviewRequestBuilder.addTarget(surface);
+//                    mPreviewRequestBuilder.addTarget(mSurfaceHolder.getSurface());
                     updatePreviewSession();
                 }
 
@@ -344,7 +383,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void stopPreviewSession() {
-        if(mCameraCaptureSession != null){
+        if (mCameraCaptureSession != null) {
             mCameraCaptureSession.close();
         }
     }
@@ -356,12 +395,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             FLAG_isRecording = true;
             setupMediaRecorder();
             startRecord();
-        }else{
+        } else {
             Log.d(TAG, "结束录像");
             btn.setText("start");
             FLAG_isRecording = false;
             stopRecord();
-            if(mCameraCaptureSession != null){
+            if (mCameraCaptureSession != null) {
                 mCameraCaptureSession.close();
             }
         }

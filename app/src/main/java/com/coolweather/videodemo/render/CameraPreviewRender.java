@@ -105,6 +105,8 @@ public class CameraPreviewRender implements GLSurfaceView.Renderer {
         Log.d(TAG, "onSurfaceCreate2");
         createTexture();
         surfaceTexture = new SurfaceTexture(cameraTexture[0]);
+        Log.d("startTime2", "" +System.currentTimeMillis());
+        Log.d(TAG, "surfaceTexture==null:" + (surfaceTexture == null));
 
         cameraFilter.onSurfaceCreated();
         colorFilter.onSurfaceCreated();
